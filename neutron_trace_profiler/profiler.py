@@ -3,10 +3,10 @@ import server
 import threading
 
 from neutron.agent import agent_extension
-from neutron.callbacks import events
-from neutron.callbacks import registry
-from neutron.callbacks import resources
-from neutron.services import service_base
+from neutron_lib.callbacks import events
+from neutron_lib.callbacks import registry
+from neutron_lib.callbacks import resources
+from neutron_lib.services import base as service_base
 from oslo_config import cfg
 
 

@@ -4,9 +4,8 @@ import os
 import webob.dec
 import webob.exc
 
-from neutron._i18n import _LI
 from neutron.agent.linux import utils as agent_utils
-from neutron.common import utils
+from neutron_lib.utils import file as utils
 from oslo_config import cfg
 
 
@@ -36,8 +35,8 @@ class ProfilerHandler(object):
             stats.save(trace_file, cfg.CONF.trace_profiler.trace_format)
             GreenletProfiler.clear_stats()
         else:
-            LOG.info(_LI("Invalid profiler action %(action)s with "
-                         " taskid %(taskid)s"),
+            LOG.info("Invalid profiler action %(action)s with "
+                         " taskid %(taskid)s",
                      {"action": action, "taskid": taskid})
 
 
