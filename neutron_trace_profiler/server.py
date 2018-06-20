@@ -22,22 +22,22 @@ class ProfilerHandler(object):
             # if stop called without start
             GreenletProfiler.set_clock_type('cpu')
             GreenletProfiler.start()
-            LOG.debug("Trace Profiler.start profiling %s ", os.getpid())
+            LOG.info("Trace Profiler.start profiling %s ", os.getpid())
         elif action == 'stop':
             GreenletProfiler.stop()
-            LOG.debug("Trace Profiler.stop profiling %s ", os.getpid())
+            LOG.info("Trace Profiler.stop profiling %s ", os.getpid())
             stats = GreenletProfiler.get_func_stats()
             trace_path = os.path.join(
                 cfg.CONF.trace_profiler.trace_path, taskid)
             utils.ensure_dir(trace_path)
             trace_file = os.path.join(trace_path, str(os.getpid()))
-            LOG.debug("Trace Profiler.writing to trace file %s ", trace_file)
+            LOG.info("Trace Profiler.writing to trace file %s ", trace_file)
             stats.save(trace_file, cfg.CONF.trace_profiler.trace_format)
             GreenletProfiler.clear_stats()
         else:
-            LOG.info("Invalid profiler action %(action)s with "
-                         " taskid %(taskid)s",
-                     {"action": action, "taskid": taskid})
+            LOG.warning("Invalid profiler action %(action)s with "
+                        " taskid %(taskid)s",
+                        {"action": action, "taskid": taskid})
 
 
 class ProfilerServer(object):
@@ -59,6 +59,6 @@ class ProfilerServer(object):
 
 
 def start_profiler_server():
-    LOG.debug("Starting trace profiler server on process %s", os.getpid())
+    LOG.info("Starting trace profiler server on process %s", os.getpid())
     profiler_server = ProfilerServer()
     profiler_server.run()

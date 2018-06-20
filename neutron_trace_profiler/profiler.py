@@ -2,7 +2,7 @@ import logging
 import server
 import threading
 
-from neutron.agent import agent_extension
+from neutron_lib.agent import extension
 from neutron_lib.callbacks import events
 from neutron_lib.callbacks import registry
 from neutron_lib.callbacks import resources
@@ -13,8 +13,8 @@ from oslo_config import cfg
 LOG = logging.getLogger(__name__)
 
 PROFILER_PLUGIN_TYPE = 'TRACE_PROFILER'
-PROFILER_SOCK_DIR = '/opt/stack/data/neutron/trace_profiler_sock'
-PROFILER_TRACE_DIR = '/opt/stack/data/neutron/trace_profiler_files'
+PROFILER_SOCK_DIR = '/var/log/neutron/trace_profiler_sock'
+PROFILER_TRACE_DIR = '/var/log/neutron/trace_profiler_files'
 TRACE_FORMAT = 'pstat'
 
 ProfilerOpts = [
@@ -24,7 +24,7 @@ ProfilerOpts = [
         help=_("Profiler socket path")),
     cfg.BoolOpt(
         'enabled',
-        default=False,
+        default=True,
         help=_("Enable Trace Profiler")),
     cfg.StrOpt(
         'trace_format',
@@ -61,7 +61,7 @@ def process_spawned(resource, event, trigger, **kwargs):
     thread.start()
 
 
-class ProfilerAgentExtension(agent_extension.AgentExtension):
+class ProfilerAgentExtension(extension.AgentExtension):
     def initialize(self, connection, driver_type):
         thread = threading.Thread(target=server.start_profiler_server)
         thread.start()

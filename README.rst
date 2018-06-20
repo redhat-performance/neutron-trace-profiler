@@ -7,35 +7,25 @@ This is not enabled for dhcp agent as agent extensions are not enabled in dhcp a
 
 
 Changes needed in neutron.conf(till devstack plugin enabled to do these changes):
-
 # This will enable Trace profiler to regsiter for process 'AFTER_INIT' event.
-
 # When this event is triggered(for each API/RPC worker), it will enable the worker
-
 # process to create new unix socket(for profiler start and stop requests).
 
 [DEFAULT]
-
 service_plugins = neutron_trace_profiler.profiler.Profiler
 
 
 [trace_profiler]
-
 enabled = True
-
-sock_path = /opt/stack/data/neutron/trace_profiler_sock
-
-trace_path = /opt/stack/data/neutron/trace_profiler_files
-
+sock_path = /var/log/neutron/trace_profiler_sock
+trace_path = /var/log/neutron/trace_profiler_files
 trace_format = pstat
 
 
 # This will enable trace profiler as agent extensions(for l2 and l3) and
-
 # create a new trace profiler unix socket for the agent process.
 
 [agent]
-
 extensions = trace_profiler
 
 
