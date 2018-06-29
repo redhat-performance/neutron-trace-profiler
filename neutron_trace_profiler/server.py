@@ -6,10 +6,17 @@ import webob.exc
 
 from neutron.agent.linux import utils as agent_utils
 from oslo_config import cfg
-from oslo_utils import fileutils
 
 
 LOG = logging.getLogger(__name__)
+
+
+def ensure_dir(path):
+    try:
+        if not os.path.isdir(path):
+            os.mkdir(path)
+    except Exception:
+        LOG.info("makdir %s failed", path)
 
 
 class ProfilerHandler(object):
@@ -29,7 +36,7 @@ class ProfilerHandler(object):
             stats = GreenletProfiler.get_func_stats()
             trace_path = os.path.join(
                 cfg.CONF.trace_profiler.trace_path, taskid)
-            fileutils.ensure_tree(trace_path, mode=0o755)
+            ensure_dir(trace_path)
             trace_file = os.path.join(trace_path, str(os.getpid()))
             LOG.info("Trace Profiler.writing to trace file %s ", trace_file)
             stats.save(trace_file, cfg.CONF.trace_profiler.trace_format)
@@ -42,19 +49,15 @@ class ProfilerHandler(object):
 
 class ProfilerServer(object):
 
-    @classmethod
-    def get_profiler_sock_path(cls):
-        fileutils.ensure_tree(cfg.CONF.trace_profiler.sock_path, mode=0o755)
-        return os.path.join(cfg.CONF.trace_profiler.sock_path,
-                            str(os.getpid()))
-
     def run(self):
         server = agent_utils.UnixDomainWSGIServer(
             'profiler-server')
-        server.start(ProfilerHandler(),
-                     self.get_profiler_sock_path(),
-                     workers=0,
-                     backlog=4096)
+        ensure_dir(cfg.CONF.trace_profiler.trace_path)
+        ensure_dir(cfg.CONF.trace_profiler.sock_path)
+        sock_path = os.path.join(cfg.CONF.trace_profiler.sock_path,
+                                 str(os.getpid()))
+        server.start(ProfilerHandler(), sock_path,
+                     workers=0, backlog=4096)
         server.wait()
 
 

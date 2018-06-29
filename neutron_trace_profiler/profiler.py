@@ -2,7 +2,7 @@ import logging
 import server
 import threading
 
-from neutron_lib.agent import extension
+from neutron.agent import agent_extension
 from neutron_lib.callbacks import events
 from neutron_lib.callbacks import registry
 from neutron_lib.callbacks import resources
@@ -61,7 +61,7 @@ def process_spawned(resource, event, trigger, **kwargs):
     thread.start()
 
 
-class ProfilerAgentExtension(extension.AgentExtension):
+class ProfilerAgentExtension(agent_extension.AgentExtension):
     def initialize(self, connection, driver_type):
         thread = threading.Thread(target=server.start_profiler_server)
         thread.start()
