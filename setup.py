@@ -57,7 +57,7 @@ setup(
     packages=find_packages(exclude=['contrib', 'docs', 'tests']),
 
     py_modules=['neutron_trace_profiler.profiler', 'neutron_trace_profiler.server'],
-    install_requires=['GreenletProfiler', 'neutron-lib>=1.16.0'],
+    install_requires=['GreenletProfiler'],
 
     entry_points={
         'neutron.agent.l2.extensions': [
