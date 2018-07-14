@@ -1,6 +1,7 @@
 import GreenletProfiler
 import logging
 import os
+import socket
 import webob.dec
 import webob.exc
 
@@ -37,7 +38,8 @@ class ProfilerHandler(object):
             trace_path = os.path.join(
                 cfg.CONF.trace_profiler.trace_path, taskid)
             ensure_dir(trace_path)
-            trace_file = os.path.join(trace_path, str(os.getpid()))
+            trace_file = os.path.join(trace_path,
+                "{}-{}".format(socket.gethostname(), os.getpid()))
             LOG.info("Trace Profiler.writing to trace file %s ", trace_file)
             stats.save(trace_file, cfg.CONF.trace_profiler.trace_format)
             GreenletProfiler.clear_stats()
