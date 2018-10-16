@@ -2,11 +2,25 @@ import logging
 import server
 import threading
 
-from neutron_lib.agent import extension
-from neutron_lib.callbacks import events
-from neutron_lib.callbacks import registry
-from neutron_lib.callbacks import resources
-from neutron_lib.services import base as service_base
+try:
+    from neutron_lib.agent import extension
+except Exception:
+    from neutron.agent import agent_extension as extension
+
+try:
+    from neutron_lib.callbacks import events
+    from neutron_lib.callbacks import registry
+    from neutron_lib.callbacks import resources
+except Exception:
+    from neutron.callbacks import events
+    from neutron.callbacks import registry
+    from neutron.callbacks import resources
+
+try:
+    from neutron_lib.services import base as service_base
+except Exception:
+    from neutron.services import service_base
+
 from oslo_config import cfg
 
 
