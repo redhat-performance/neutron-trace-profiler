@@ -1,7 +1,9 @@
 import gc
 import GreenletProfiler
+import inspect
 import json
 import logging
+import objgraph
 import os
 import socket
 import webob.dec
@@ -13,7 +15,7 @@ from oslo_config import cfg
 
 LOG = logging.getLogger(__name__)
 
-obj_count = {}
+objcount_dict = {}
 
 
 def ensure_dir(path):
@@ -25,6 +27,15 @@ def ensure_dir(path):
         pass
 
 
+def dump_objgrpah(objgraph_file):
+    new_ids = objgraph.get_new_ids()
+    new_ids_list = new_ids['list']
+    new_objs = objgraph.at_addrs(new_ids_list)
+    objgraph.show_backrefs(new_objs, highlight=inspect.isclass,
+                           refcounts=True, filename=objgraph_file)
+    new_ids = objgraph.get_new_ids()
+
+
 class ProfilerHandler(object):
     @webob.dec.wsgify(RequestClass=webob.Request)
     def __call__(self, req):
@@ -32,46 +43,62 @@ class ProfilerHandler(object):
         action = req.headers['X-Neutron-Profiler-Action']
         iteration = req.headers.get('X-Neutron-Profiler-Iteration')
         profiler_type = req.headers.get('X-Neutron-Profiler-Type')
-        if not profiler_type:
-            profiler_type = 'calltrace'
+        obj_graph = True if profiler_type == 'objgraph' else False
+        objcount = (True if (profiler_type in ['objcount', 'objgraph'])
+                    else False)
+        calltrace = (True
+                     if (not profiler_type or profiler_type == 'calltrace')
+                     else False)
+        trace_path = os.path.join(
+            cfg.CONF.trace_profiler.trace_path, taskid)
+        ensure_dir(trace_path)
         LOG.info("Trace Profiler pid %s taskid %s action %s iteration %s"
                  " profiler_type %s",
                  os.getpid(), taskid, action, iteration, profiler_type)
         if action == 'start':
-            if profiler_type == 'calltrace':
+            if calltrace:
                 GreenletProfiler.set_clock_type('cpu')
                 GreenletProfiler.start()
-            else:
-                if iteration:
-                    obj_count[iteration] = len(gc.get_objects())
-            LOG.info("anil Trace Profiler.start profiling %s ", os.getpid())
-        if action == 'snapshot':
-            if iteration and profiler_type == 'memory':
-                obj_count[iteration] = len(gc.get_objects())
+            if objcount and iteration:
+                objcount_dict[iteration] = len(gc.get_objects())
+            if obj_graph:
+                objgraph.get_new_ids()
+            LOG.info("Trace Profiler.start profiling %s ", os.getpid())
+        elif action == 'snapshot':
+            if iteration:
+                if objcount:
+                    objcount_dict[iteration] = len(gc.get_objects())
+                if obj_graph:
+                    objgraph_file = os.path.join(
+                        trace_path, "{}-{}-{}-objgraph.dot".format(
+                            socket.gethostname(), os.getpid(), iteration))
+                    dump_objgrpah(objgraph_file)
         elif action == 'stop':
-            LOG.info("anil Trace Profiler.stop profiling %s ", os.getpid())
-            trace_path = os.path.join(
-                cfg.CONF.trace_profiler.trace_path, taskid)
-            ensure_dir(trace_path)
-            trace_file = os.path.join(
-                trace_path, "{}-{}".format(socket.gethostname(), os.getpid()))
-            if profiler_type == 'calltrace':
+            LOG.info("Trace Profiler.stop profiling %s ", os.getpid())
+            if calltrace:
+                trace_file = os.path.join(
+                    trace_path, "{}-{}".format(socket.gethostname(),
+                                               os.getpid()))
                 GreenletProfiler.stop()
                 stats = GreenletProfiler.get_func_stats()
                 LOG.info("Trace Profiler.writing to trace file %s ",
                          trace_file)
                 stats.save(trace_file, cfg.CONF.trace_profiler.trace_format)
                 GreenletProfiler.clear_stats()
-            else:
-                obj_file = os.path.join(
+            if objcount:
+                objcount_file = os.path.join(
                     trace_path, "{}-{}-objcount".format(socket.gethostname(),
                                                         os.getpid()))
                 if iteration:
-                    obj_count[iteration] = len(gc.get_objects())
-                with open(obj_file, 'w') as fp:
-                    json.dump(obj_count, fp)
-
-                obj_count.clear()
+                    objcount_dict[iteration] = len(gc.get_objects())
+                with open(objcount_file, 'w') as fp:
+                    json.dump(objcount_dict, fp)
+                objcount_dict.clear()
+            if obj_graph:
+                objgraph_file = os.path.join(
+                    trace_path, "{}-{}-objgraph.dot".format(
+                        socket.gethostname(), os.getpid()))
+                dump_objgrpah(objgraph_file)
         else:
             LOG.warning("Invalid profiler action %(action)s with "
                         " taskid %(taskid)s",

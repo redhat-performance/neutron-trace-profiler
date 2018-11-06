@@ -28,6 +28,37 @@ trace_format = pstat
 [agent]
 extensions = trace_profiler
 
+User has to write to unix socket for profiling. Server expects below
+request parameters
+1) X-Neutron-Profiler-taskid: task name. A folder with this task id
+is created in /var/log/neutron/trace_profiler_files and then trace files
+are generated in this folder. If the client is rally, then pass rally taskid.
+
+2) X-Neutron-Profiler-Action: can take start/snapshot/stop as values.
+ start: To start profiling
+ snapshot: Only applicable for objgraph and objcount profiling i.e
+    generate objgraph now or capture python memory object count.
+ stop: generate trace files
+
+3) X-Neutron-Profiler-Type: Following profiling types supported
+   a) calltrace: Generate function call trace
+   b) objcount: Dump how many python objects(in neutron-server process)
+                created between previous socket request and this request
+   c) objgraph: Create objgraph(.dot file) for each python object
+                (which exists after GC call) with its referrers
+                 
+4) X-Neutron-Profiler-Iteration: Introduced to capture objcount or
+   objgraph after each rally iteration. A rally hook which writes to
+   unix socket for profiling should pass iteration count. Non rally
+   client should pass incremental number.
+
+Example with 'nc' command to write to unix socket   
+
+echo -e "POST /localhost/json HTTP/1.0\r\nX-Neutron-Profiler-taskid: taskid2\r\n
+X-Neutron-Profiler-Action: start\r\n
+X-Neutron-Profiler-Type: objcount\r\n
+X-Neutron-Profiler-Iteration: 1\r\n" |
+sudo nc -U /var/log/neutron/trace_profiler_sock/<neutron-server-pid>
 
 TODO: Remove author names and convert it into openstack format.
 
