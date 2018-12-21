@@ -9,8 +9,8 @@ import socket
 import webob.dec
 import webob.exc
 
-from neutron.agent.linux import utils as agent_utils
 from oslo_config import cfg
+from oslo_service import wsgi
 
 
 LOG = logging.getLogger(__name__)
@@ -108,14 +108,16 @@ class ProfilerHandler(object):
 class ProfilerServer(object):
 
     def run(self):
-        server = agent_utils.UnixDomainWSGIServer(
-            'profiler-server')
         ensure_dir(cfg.CONF.trace_profiler.trace_path)
         ensure_dir(cfg.CONF.trace_profiler.sock_path)
         sock_path = os.path.join(cfg.CONF.trace_profiler.sock_path,
                                  str(os.getpid()))
-        server.start(ProfilerHandler(), sock_path,
-                     workers=0, backlog=4096)
+        socket_mode = 0o666
+        server = wsgi.Server(cfg.CONF, "profiler-server", ProfilerHandler(),
+                             socket_family=socket.AF_UNIX,
+                             socket_mode=socket_mode,
+                             socket_file=sock_path)
+        server.start()
         server.wait()
 
 
